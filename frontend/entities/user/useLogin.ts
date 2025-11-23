@@ -1,0 +1,23 @@
+"use client";
+
+import { useMutation, type UseMutationOptions } from "@tanstack/react-query";
+import { api } from "../api";
+import type { LoginRequest, LoginResponse } from "./types";
+
+export function useLogin(
+	options?: UseMutationOptions<LoginResponse, Error, LoginRequest>
+) {
+	return useMutation<LoginResponse, Error, LoginRequest>({
+		mutationFn: async (body) => {
+			const res = await api.post<LoginResponse>("/auth/login", body);
+			return res.data;
+		},
+		onSuccess: (data, variables, ctx, mutation) => {
+			document.cookie = `auth_token=${data.token}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			options?.onSuccess?.(data, variables, ctx, mutation);
+		},
+		...options,
+	});
+}
+
+

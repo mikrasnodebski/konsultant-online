@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  CONSULTANT
+  CLIENT
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  phone        String
+  firstName    String
+  lastName     String
+  role         Role     @default(CLIENT)
+  passwordHash String
+  passwordSalt String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  offers       Offer[]
+  consultantRelations Relation[] @relation("ConsultantRelations")
+  clientRelations     Relation[] @relation("ClientRelations")
+}
+
+model Offer {
+  id              Int      @id @default(autoincrement())
+  storeSlug       String   @unique
+  title           String
+  descriptionHtml String
+  pricePln        Decimal  @db.Decimal(10, 2)
+  primaryColor    String?
+  secondaryColor  String?
+  userId          Int?     @unique
+  user            User?    @relation(fields: [userId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum RelationType {
+  CONSULTANT_CLIENT
+  CONSULTANT_LEAD
+}
+
+model Relation {
+  id            Int           @id @default(autoincrement())
+  relationType  RelationType
+  consultantId  Int
+  consultant    User          @relation("ConsultantRelations", fields: [consultantId], references: [id])
+
+  clientId      Int?
+  client        User?         @relation("ClientRelations", fields: [clientId], references: [id])
+
+  isDeleted     Boolean       @default(false)
+  deletedAt     DateTime?
+
+  notes         String?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+
+  events        Event[]
+
+  @@index([consultantId])
+  @@index([clientId])
+  @@unique([consultantId, clientId, relationType, isDeleted], map: "unique_consultant_client_relation")
+}
+
+
+model Image {
+  id        Int      @id @default(autoincrement())
+  mimeType  String
+  data      Bytes
+  createdAt DateTime @default(now())
+}
+
+model Recording {
+  id         Int      @id @default(autoincrement())
+  relationId Int?
+  consultantId Int?
+  clientId   Int?
+  mimeType   String
+  durationMs Int      @default(0)
+  data       Bytes
+  createdAt  DateTime @default(now())
+  events     Event[]
+}
+
+enum PaymentStatus {
+  PAID
+  UNPAID
+}
+
+model Event {
+  id            Int            @id @default(autoincrement())
+  title         String
+  start         DateTime
+  end           DateTime
+  consultantId  Int
+  clientId      Int?
+  relationId    Int
+  relation      Relation       @relation(fields: [relationId], references: [id])
+  paymentStatus PaymentStatus  @default(UNPAID)
+  source        EventSource    @default(MANUAL)
+  recordingId   Int?
+  recording     Recording?     @relation(fields: [recordingId], references: [id])
+  eventGroupId  Int?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+enum EventSource {
+  MANUAL
+  AUTO
+}
