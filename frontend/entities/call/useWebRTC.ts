@@ -77,9 +77,6 @@ export function useWebRTC({ roomId, serverUrl }: UseWebRTCOptions) {
     socket.on("connect", async () => {
       await getLocalMedia();
       socket.emit("join", { roomId });
-      setTimeout(() => {
-        if (!initiator && !created) createPeer(false);
-      }, 500);
     });
 
     socket.on("room:full", () => {
@@ -98,10 +95,8 @@ export function useWebRTC({ roomId, serverUrl }: UseWebRTCOptions) {
       }
     });
 
-    socket.on("peer:joined", () => {
-      if (!peerRef.current) {
-        createPeer(true);
-      }
+    socket.on("room:ready", (data: { initiator: boolean }) => {
+      if (!created) createPeer(!!data?.initiator);
     });
 
     socket.on("signal", async (payload: any) => {

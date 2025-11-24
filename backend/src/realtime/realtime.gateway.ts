@@ -62,7 +62,17 @@ export class RealtimeGateway {
       return;
     }
     client.join(data.roomId);
-    client.to(data.roomId).emit('peer:joined');
+    const joinedRoom = this.server.sockets.adapter.rooms.get(data.roomId);
+    const members = joinedRoom ? Array.from(joinedRoom) : [];
+    if (members.length === 2) {
+      const [a, b] = members;
+      // Wyznacz inicjatora i stronę odpowiadającą
+      this.server.to(a).emit('room:ready', { initiator: true });
+      this.server.to(b).emit('room:ready', { initiator: false });
+    } else {
+      // poinformuj obecnych, że ktoś dołączył (dla UI)
+      client.to(data.roomId).emit('peer:joined');
+    }
   }
 
   @SubscribeMessage('signal')
