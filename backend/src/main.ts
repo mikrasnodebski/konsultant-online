@@ -11,8 +11,13 @@ async function bootstrap() {
   app.use(json({ limit: '100mb' }));
   app.use(urlencoded({ limit: '100mb', extended: true }));
   app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
+  const allowedOrigins: (RegExp | string)[] = [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/];
+  const frontendUrl = (process.env.FRONTEND_URL || '').trim();
+  if (frontendUrl) {
+    allowedOrigins.push(frontendUrl);
+  }
   app.enableCors({
-    origin: [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
