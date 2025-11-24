@@ -100,97 +100,118 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
   }, [remoteStream]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-white">
-      <div className="h-full w-full flex flex-col">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Połączenie wideo</h3>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-700">✕</button>
-        </div>
-        <div className="flex-1 p-6 grid gap-4 place-items-center">
-          <div className="w-full max-w-6xl grid md:grid-cols-2 gap-4">
-            <div className="rounded-xl overflow-hidden border border-slate-200 bg-black aspect-video">
+    <div className="fixed inset-0 z-50 bg-slate-950 text-white">
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={onClose}
+          className="h-10 w-10 grid place-items-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+          aria-label="Zamknij"
+          title="Zamknij"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="h-full w-full flex flex-col items-center">
+        <div className="w-full flex-1 grid place-items-center p-4 sm:p-8">
+          <div className="w-full max-w-6xl grid gap-4 md:grid-cols-2">
+            <div className="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-2xl">
               <video ref={localVideoRef} className="w-full h-full object-cover" playsInline autoPlay muted />
+              <div className="absolute left-3 bottom-3 text-xs px-2 py-1 rounded-md bg-white/10 backdrop-blur">
+                {videoEnabled ? "Kamera włączona" : "Kamera wyłączona"}
+              </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-slate-200 bg-black aspect-video">
+            <div className="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-2xl">
               <video ref={remoteVideoRef} className="w-full h-full object-cover" playsInline autoPlay />
+              {!connected && (
+                <div className="absolute inset-0 grid place-items-center text-sm text-white/80">Oczekiwanie na drugą osobę…</div>
+              )}
             </div>
           </div>
-          <div className="w-full max-w-6xl flex items-center justify-between">
-            <div className="text-sm text-slate-600">
-              Status: <span className={connected ? "text-green-600" : "text-slate-500"}>{connected ? "Połączono" : "Oczekiwanie..."}</span>
-              {isRecording ? (
-                <span className="ml-4 text-red-600">Nagrywanie • {(recordMs / 1000).toFixed(0)}s</span>
-              ) : null}
-            </div>
-            <div className="flex gap-2">
-              <div className="flex items-center gap-2">
-                <select
-                  className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm"
-                  value={selectedCameraId || ""}
-                  onChange={(e) => switchCamera(e.target.value)}
-                  onClick={refreshCameras}
-                  title="Wybierz kamerę"
-                >
-                  {(cameras.length ? cameras : [{ deviceId: "", label: "Kamera" }]).map((c: { deviceId?: string; label?: string }) => (
-                    <option key={c.deviceId || "none"} value={c.deviceId || ""}>
-                      {c.label || `Kamera (${c.deviceId?.slice(-4)})`}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        </div>
+
+        <div className="pointer-events-none relative w-full pb-8">
+          <div className="pointer-events-auto mx-auto w-full max-w-3xl rounded-full bg-black/60 backdrop-blur px-4 py-3 flex items-center justify-center gap-3 shadow-2xl">
+            <select
+              className="hidden sm:block rounded-full bg-white/10 hover:bg-white/20 text-sm px-3 py-2 outline-none"
+              value={selectedCameraId || ""}
+              onChange={(e) => switchCamera(e.target.value)}
+              onClick={refreshCameras}
+              title="Wybierz kamerę"
+            >
+              {(cameras.length ? cameras : [{ deviceId: "", label: "Kamera" }]).map((c: { deviceId?: string; label?: string }) => (
+                <option key={c.deviceId || "none"} value={c.deviceId || ""}>
+                  {c.label || `Kamera (${c.deviceId?.slice(-4)})`}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={toggleAudio}
+              className={`h-11 w-11 rounded-full grid place-items-center ${audioEnabled ? "bg-white/10 hover:bg-white/20" : "bg-amber-600 hover:bg-amber-700"} transition-colors`}
+              title={audioEnabled ? "Wycisz mikrofon" : "Włącz mikrofon"}
+              aria-label="Przełącz mikrofon"
+            >
+              {audioEnabled ? "🎙️" : "🔇"}
+            </button>
+            <button
+              onClick={toggleVideo}
+              className={`h-11 w-11 rounded-full grid place-items-center ${videoEnabled ? "bg-white/10 hover:bg-white/20" : "bg-amber-600 hover:bg-amber-700"} transition-colors`}
+              title={videoEnabled ? "Wyłącz kamerę" : "Włącz kamerę"}
+              aria-label="Przełącz kamerę"
+            >
+              {videoEnabled ? "📷" : "🚫"}
+            </button>
+            <button
+              onClick={shareScreen}
+              className="h-11 w-11 rounded-full grid place-items-center bg-white/10 hover:bg-white/20 transition-colors"
+              title="Udostępnij ekran"
+            >
+              🖥️
+            </button>
+
+            {!isRecording ? (
               <button
-                onClick={toggleAudio}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm hover:bg-slate-50"
-                aria-label="Przełącz mikrofon"
-                title="Przełącz mikrofon"
+                onClick={startRecording}
+                className="h-11 px-4 rounded-full bg-white/10 hover:bg-white/20 text-sm transition-colors"
+                title="Rozpocznij nagrywanie"
               >
-                {audioEnabled ? "Wycisz mikrofon" : "Włącz mikrofon"}
+                Nagraj
               </button>
+            ) : (
               <button
-                onClick={toggleVideo}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm hover:bg-slate-50"
-                aria-label="Przełącz kamerę"
-                title="Przełącz kamerę"
+                onClick={async () => {
+                  const result = await stopRecording();
+                  if (!result || !result.blob || result.blob.size === 0) return;
+                  try {
+                    const id = await uploader.mutateAsync({
+                      blob: result.blob,
+                      durationMs: result.durationMs,
+                      mimeType: result.blob.type,
+                      relationId: Number.isFinite(Number(roomId)) ? Number(roomId) : undefined,
+                    });
+                    if (typeof id === "number") recordingIdRef.current = id;
+                  } catch {}
+                }}
+                className="h-11 px-4 rounded-full bg-red-600 hover:bg-red-700 text-sm transition-colors"
+                title="Zatrzymaj i zapisz"
               >
-                {videoEnabled ? "Wyłącz kamerę" : "Włącz kamerę"}
+                Stop
               </button>
-              <button onClick={shareScreen} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm hover:bg-slate-50">
-                Udostępnij ekran
-              </button>
-              {!isRecording ? (
-                <button
-                  onClick={startRecording}
-                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm hover:bg-slate-50"
-                  title="Rozpocznij nagrywanie"
-                >
-                  Rozpocznij nagrywanie
-                </button>
-              ) : (
-                <button
-                  onClick={async () => {
-                    const result = await stopRecording();
-                    if (!result || !result.blob || result.blob.size === 0) return;
-                    try {
-                      const id = await uploader.mutateAsync({
-                        blob: result.blob,
-                        durationMs: result.durationMs,
-                        mimeType: result.blob.type,
-                        relationId: Number.isFinite(Number(roomId)) ? Number(roomId) : undefined,
-                      });
-                      if (typeof id === "number") recordingIdRef.current = id;
-                    } catch {
-                    }
-                  }}
-                  className="rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700 hover:bg-red-100"
-                  title="Zatrzymaj i zapisz"
-                >
-                  Zatrzymaj i zapisz
-                </button>
-              )}
-              <button onClick={onClose} className="rounded-md bg-red-600 text-white px-4 py-2 text-sm hover:bg-red-700">
-                Zakończ
-              </button>
-            </div>
+            )}
+
+            <button
+              onClick={onClose}
+              className="h-11 w-11 rounded-full grid place-items-center bg-red-600 hover:bg-red-700 transition-colors ml-1"
+              title="Zakończ"
+              aria-label="Zakończ"
+            >
+              ⛔
+            </button>
+          </div>
+
+          <div className="mt-3 text-center text-xs text-white/70">
+            {connected ? "Połączono" : "Oczekiwanie…"} {isRecording ? `• Nagrywanie ${Math.floor(recordMs / 1000)}s` : ""}
           </div>
         </div>
       </div>
