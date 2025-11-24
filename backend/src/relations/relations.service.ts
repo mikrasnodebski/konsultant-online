@@ -72,7 +72,7 @@ export class RelationsService {
       where: { clientId, isDeleted: false },
       include: {
         consultant: {
-          select: { id: true, email: true, firstName: true, lastName: true },
+          select: { id: true, email: true, phone: true, firstName: true, lastName: true },
         },
       },
       orderBy: { createdAt: 'desc' },

@@ -107,23 +107,11 @@ export function ClientPanel() {
 									{clients.map((r) => {
 										const name = [r.consultant.firstName, r.consultant.lastName].filter(Boolean).join(" ").trim();
 										return (
-											<li key={`client-${r.relationId}`} className="py-3 flex items-center justify-between">
+											<li key={`client-${r.relationId}`} className="py-3">
 												<div>
 													<p className="font-medium">{name || r.consultant.email}</p>
-													<p className="text-sm text-slate-600">{r.consultant.phone || r.consultant.email}</p>
+													<p className="text-sm text-slate-600">{r.consultant.phone ? r.consultant.phone : "Brak numeru telefonu"}</p>
 												</div>
-												<a
-													href={`mailto:${r.consultant.email}`}
-													className="text-sm text-blue-700 hover:underline"
-												>
-													Napisz
-												</a>
-												<button
-													onClick={() => router.push(`/call/${encodeRoomId(r.relationId)}`)}
-													className="ml-3 rounded-md bg-blue-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700"
-												>
-													Dołącz
-												</button>
 											</li>
 										);
 									})}
@@ -151,7 +139,7 @@ export function ClientPanel() {
 
 						<div className="rounded-2xl border border-slate-200 bg-white shadow-md min-h-[520px]">
 							<div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-								<h2 className="text-lg font-semibold tracking-tight">Moje konsultacje</h2>
+								<h2 className="text-lg font-semibold tracking-tight">Moje nagrania</h2>
 							</div>
 							<ul className="divide-y divide-slate-100">
 								{myRecordings.isLoading && <li key="loading-recs" className="px-6 py-4 text-sm">Ładowanie…</li>}

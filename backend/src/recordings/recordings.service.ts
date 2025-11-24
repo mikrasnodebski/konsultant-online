@@ -13,11 +13,26 @@ export class RecordingsService {
     durationMs: number;
     data: Buffer;
   }) {
+    // Jeśli znamy relationId, wyprowadź prawidłowe consultantId i clientId z relacji
+    let consultantId = params.consultantId ?? null;
+    let clientId = params.clientId ?? null;
+    if (params.relationId) {
+      try {
+        const rel = await this.prisma.relation.findUnique({
+          where: { id: params.relationId },
+          select: { consultantId: true, clientId: true },
+        });
+        if (rel) {
+          consultantId = rel.consultantId ?? consultantId;
+          clientId = rel.clientId ?? clientId;
+        }
+      } catch {}
+    }
     const rec = await this.prisma.recording.create({
       data: {
         relationId: params.relationId ?? null,
-        consultantId: params.consultantId ?? null,
-        clientId: params.clientId ?? null,
+        consultantId: consultantId ?? null,
+        clientId: clientId ?? null,
         mimeType: params.mimeType,
         durationMs: params.durationMs,
         data: Buffer.from(params.data),
@@ -57,20 +72,43 @@ export class RecordingsService {
       },
     });
     const relationIds = relations.map((r) => r.id);
-    if (relationIds.length === 0) return [];
+    // Pobierz nagrania przypięte do relacji lub te przypisane bezpośrednio do klienta
     const recs = await this.prisma.recording.findMany({
-      where: { relationId: { in: relationIds } },
+      where: {
+        OR: [
+          relationIds.length > 0 ? { relationId: { in: relationIds } } : undefined,
+          { clientId },
+        ].filter(Boolean) as any,
+      },
       orderBy: { createdAt: 'desc' },
-      select: { id: true, mimeType: true, durationMs: true, createdAt: true, relationId: true },
+      select: { id: true, mimeType: true, durationMs: true, createdAt: true, relationId: true, consultantId: true },
     });
     const byId = new Map(relations.map((r) => [r.id, r]));
-    return recs.map((r) => ({
-      id: r.id,
-      mimeType: r.mimeType,
-      durationMs: r.durationMs,
-      createdAt: r.createdAt,
-      consultant: byId.get(r.relationId!)?.consultant ?? null,
-    }));
+
+    // Zbierz konsultantów dla nagrań bez relationId
+    const orphanConsultantIds = Array.from(
+      new Set(recs.filter((r) => !r.relationId && r.consultantId).map((r) => r.consultantId!)),
+    );
+    const orphanConsultants =
+      orphanConsultantIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: orphanConsultantIds } },
+            select: { id: true, email: true, phone: true, firstName: true, lastName: true },
+          })
+        : [];
+    const orphanById = new Map(orphanConsultants.map((u) => [u.id, u]));
+
+    return recs.map((r) => {
+      const fromRelation = r.relationId ? byId.get(r.relationId)?.consultant ?? null : null;
+      const fromOrphan = !fromRelation && r.consultantId ? orphanById.get(r.consultantId) ?? null : null;
+      return {
+        id: r.id,
+        mimeType: r.mimeType,
+        durationMs: r.durationMs,
+        createdAt: r.createdAt,
+        consultant: fromRelation || fromOrphan || null,
+      };
+    });
   }
 
   async delete(id: number, userId: number) {

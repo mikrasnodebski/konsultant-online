@@ -35,6 +35,7 @@ export class EventsService {
         title: true,
         start: true,
         end: true,
+        source: true,
         relationId: true,
         relation: {
           select: {
@@ -51,6 +52,7 @@ export class EventsService {
       title: e.title,
       start: e.start,
       end: e.end,
+      source: e.source,
       relationId: e.relationId,
       consultant: e.relation.consultant,
     }));
