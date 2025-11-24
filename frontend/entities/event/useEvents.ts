@@ -7,6 +7,7 @@ export type EventDto = {
   start: string;
   end: string;
   clientId?: number | null;
+  relationId?: number | null;
   paymentStatus: "PAID" | "UNPAID";
   source?: "MANUAL" | "AUTO";
   eventGroupId?: number | null;

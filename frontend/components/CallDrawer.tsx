@@ -6,6 +6,8 @@ import { useUploadRecording } from "@/entities/call/useUploadRecording";
 import { useCurrentUser } from "@/entities/user/useCurrentUser";
 import { useConsultantClients } from "@/entities/relation/useConsultantClients";
 import { useMyRelations } from "@/entities/relation/useMyRelations";
+import { useEvents } from "@/entities/event/useEvents";
+import { useUpcomingClientEvents } from "@/entities/event/useUpcomingClientEvents";
 
 type Props = {
   roomId: string;
@@ -19,6 +21,8 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
   const me = useCurrentUser();
   const myClients = useConsultantClients();
   const myRelations = useMyRelations();
+  const myCalendar = useEvents();
+  const clientUpcoming = useUpcomingClientEvents();
   const decodedRelationId = useMemo(() => (Number.isFinite(canonical.relationId as any) ? Number(canonical.relationId) : null), [canonical.relationId]);
   const counterpartyDisplayName = useMemo(() => {
     // Dla konsultanta pokazujemy nazwę klienta
@@ -47,6 +51,33 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
     myClients.data,
     myRelations.data,
   ]);
+
+  // Ustal, czy należy pominąć automatyczne tworzenie eventu,
+  // gdy istnieje już zaplanowany event dla tej relacji, który trwa
+  // lub zaczyna się w ciągu 15 minut.
+  const skipAutoCreate = useMemo(() => {
+    if (!decodedRelationId) return false;
+    const now = new Date();
+    const fifteenMinMs = 15 * 60 * 1000;
+
+    if (me?.role === "CONSULTANT") {
+      const list = (myCalendar.data ?? []).filter((e) => (e.relationId ?? null) === decodedRelationId);
+      return list.some((e) => {
+        const s = new Date(e.start);
+        const eend = new Date(e.end ?? e.start);
+        return now.getTime() >= s.getTime() - fifteenMinMs && now.getTime() <= eend.getTime();
+      });
+    }
+    if (me?.role === "CLIENT") {
+      const list = (clientUpcoming.data ?? []).filter((e) => (e.relationId ?? null) === decodedRelationId);
+      return list.some((e) => {
+        const s = new Date(e.start);
+        const eend = new Date(e.end ?? e.start);
+        return now.getTime() >= s.getTime() - fifteenMinMs && now.getTime() <= eend.getTime();
+      });
+    }
+    return false;
+  }, [decodedRelationId, me?.role, myCalendar.data, clientUpcoming.data]);
   const {
     localStreamRef,
     localStream,
@@ -79,9 +110,12 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
     const relationIdDecoded = canonical.relationId;
     const userKnown = me !== null;
     const clientsReady = me?.role !== "CONSULTANT" || myClients.isLoading === false;
+    const eventsReady =
+      me?.role === "CONSULTANT" ? myCalendar.isLoading === false : clientUpcoming.isLoading === false;
     if (createdOnceRef.current) return;
     if (!Number.isFinite(relationIdDecoded as number)) return;
-    if (!userKnown || !clientsReady) return;
+    if (!userKnown || !clientsReady || !eventsReady) return;
+    if (skipAutoCreate) return;
 
     createdOnceRef.current = true;
     meetingStartRef.current = new Date();
@@ -123,7 +157,7 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
         }
       } catch {}
     };
-  }, [canonical.relationId, me, myClients.isLoading, counterpartyDisplayName, title, createEvent]);
+  }, [canonical.relationId, me, myClients.isLoading, counterpartyDisplayName, title, createEvent, myCalendar.isLoading, clientUpcoming.isLoading, skipAutoCreate]);
   const uploader = useUploadRecording();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);

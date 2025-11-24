@@ -160,7 +160,21 @@ export function ClientsTable() {
                 onClick={() => {
                   if (!selectedId) return;
                   deleteRelation.mutate(selectedId, {
-                    onSuccess: () => setSelected(null),
+                    onSuccess: () => {
+                      setSelected(null);
+                      if (typeof window !== "undefined" && typeof document !== "undefined") {
+                        const el = document.createElement("div");
+                        el.setAttribute(
+                          "class",
+                          "fixed bottom-6 right-6 z-1000 rounded-lg border border-green-200 bg-white px-4 py-3 shadow-lg"
+                        );
+                        el.innerHTML = `<p class="text-sm font-medium" style="color:#16a34a">Klienta usunięto.</p>`;
+                        document.body.appendChild(el);
+                        window.setTimeout(() => {
+                          el.remove();
+                        }, 3000);
+                      }
+                    },
                   });
                 }}
                 className="rounded-md bg-red-600 text-white px-4 py-2 text-sm font-medium hover:bg-red-700 disabled:opacity-60"

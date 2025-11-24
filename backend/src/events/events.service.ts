@@ -15,6 +15,7 @@ export class EventsService {
         start: true,
         end: true,
         clientId: true,
+        relationId: true,
         paymentStatus: true,
         source: true,
         recordingId: true,
