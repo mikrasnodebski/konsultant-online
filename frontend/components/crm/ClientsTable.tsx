@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CallDrawer } from "@/components/CallDrawer";
 import { useConsultantClients, type ConsultantClient } from "@/entities/relation/useConsultantClients";
 import { useUpdateRelationNotes } from "@/entities/relation/useUpdateRelationNotes";
 import { useDeleteClientRelation } from "@/entities/relation/useDeleteClientRelation";
@@ -15,8 +15,8 @@ export function ClientsTable() {
   const updater = useUpdateRelationNotes();
   const selectedId = selected?.id;
   const deleteRelation = useDeleteClientRelation();
-  const [callFor, setCallFor] = useState<ConsultantClient | null>(null);
   const [recFor, setRecFor] = useState<ConsultantClient | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (selected) setNotes(selected.notes ?? "");
@@ -77,7 +77,7 @@ export function ClientsTable() {
                 </div>
                 <div className="flex items-center justify-end gap-2">
                   <button
-                    onClick={() => setCallFor(r)}
+                    onClick={() => router.push(`/panel/call/${r.id}`)}
                     aria-label="Połączenie telefoniczne"
                     title="Połączenie telefoniczne"
                     className="rounded-md border border-slate-300 bg-white w-8 h-8 grid place-items-center hover:bg-slate-50"
@@ -171,14 +171,6 @@ export function ClientsTable() {
             </div>
           </div>
         </div>
-      )}
-
-      {callFor && (
-        <CallDrawer
-          roomId={String(callFor.id)}
-          title={[callFor.client.firstName, callFor.client.lastName].filter(Boolean).join(" ") || callFor.client.email}
-          onClose={() => setCallFor(null)}
-        />
       )}
 
       {recFor && <RecordingsModal relationId={recFor.id} onClose={() => setRecFor(null)} />}

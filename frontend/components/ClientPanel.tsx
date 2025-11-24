@@ -4,18 +4,18 @@ import { useCurrentUser } from "@/entities/user/useCurrentUser";
 import { useCreateLead } from "@/entities/relation/useCreateLead";
 import { useConsultants } from "@/entities/relation/useConsultants";
 import { useUpcomingClientEvents } from "@/entities/event/useUpcomingClientEvents";
-import { CallDrawer } from "./CallDrawer";
 import { useMyRecordings } from "@/entities/call/useMyRecordings";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function ClientPanel() {
 	const user = useCurrentUser();
+	const router = useRouter();
 	const [showInvite, setShowInvite] = useState(false);
 	const [consultantEmail, setConsultantEmail] = useState("");
 	const createLead = useCreateLead();
 	const { current: clients, pending: sentInvites } = useConsultants();
 	const upcoming = useUpcomingClientEvents(1);
-	const [joinRoom, setJoinRoom] = useState<{ relationId: number; title: string } | null>(null);
 	const myRecordings = useMyRecordings();
 	const [previewId, setPreviewId] = useState<number | null>(null);
 
@@ -76,7 +76,7 @@ export function ClientPanel() {
 												</div>
 												{inProgress ? (
 													<button
-														onClick={() => setJoinRoom({ relationId: e.relationId, title: name })}
+														onClick={() => router.push(`/panel/call/${e.relationId}`)}
 														className="rounded-md bg-blue-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700"
 													>
 														Dołącz do rozmowy
@@ -117,6 +117,12 @@ export function ClientPanel() {
 												>
 													Napisz
 												</a>
+												<button
+													onClick={() => router.push(`/panel/call/${r.relationId}`)}
+													className="ml-3 rounded-md bg-blue-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700"
+												>
+													Dołącz
+												</button>
 											</li>
 										);
 									})}
@@ -227,13 +233,6 @@ export function ClientPanel() {
 						</div>
 					)}
 
-					{joinRoom && (
-						<CallDrawer
-							roomId={String(joinRoom.relationId)}
-							title={joinRoom.title}
-							onClose={() => setJoinRoom(null)}
-						/>
-					)}
 					{previewId && (
 						<div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
 							<div className="w-full max-w-3xl bg-black rounded-xl overflow-hidden shadow-2xl">
