@@ -67,8 +67,22 @@ export function useWebRTC({ roomId, serverUrl }: UseWebRTCOptions) {
         socket.emit("signal", { roomId, payload: data });
       });
       peer.on("connect", () => setConnected(true));
-      peer.on("close", () => setConnected(false));
-      peer.on("error", () => setConnected(false));
+      peer.on("close", () => {
+        setConnected(false);
+        // Wyłącz kamerę, gdy druga strona wyjdzie / połączenie się zamknie
+        try {
+          setVideoEnabled(false);
+          setTrackEnabled("video", false);
+        } catch {}
+      });
+      peer.on("error", () => {
+        setConnected(false);
+        // Na błąd również wyłącz kamerę
+        try {
+          setVideoEnabled(false);
+          setTrackEnabled("video", false);
+        } catch {}
+      });
       peer.on("stream", (stream: MediaStream) => {
         setRemoteStream(stream);
       });
@@ -111,6 +125,17 @@ export function useWebRTC({ roomId, serverUrl }: UseWebRTCOptions) {
       socketRef.current?.disconnect();
       setConnected(false);
       setRemoteStream(null);
+      // Zatrzymaj lokalny strumień wideo i zwolnij kamerę
+      try {
+        const ls = localStreamRef.current;
+        if (ls) {
+          ls.getVideoTracks().forEach((t) => {
+            try { t.enabled = false; } catch {}
+            try { t.stop(); } catch {}
+          });
+        }
+        setVideoEnabled(false);
+      } catch {}
     };
   }, [roomId, serverUrl]);
 
