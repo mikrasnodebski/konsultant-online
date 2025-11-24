@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCurrentUser } from "@/entities/user/useCurrentUser";
+import { api } from "@/entities/api";
 
 const navItems = [
 	{ key: "shop", label: "Moja oferta", href: "/panel/consultant" },
@@ -22,7 +23,6 @@ export function ConsultantSidebar() {
 	function logout() {
 		try {
 			document.cookie = "auth_token=; Max-Age=0; path=/";
-			// Usuń nagłówek Authorization dla przyszłych żądań
 			try {
 				delete (api.defaults.headers.common as any)["Authorization"];
 			} catch {}
