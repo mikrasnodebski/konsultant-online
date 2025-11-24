@@ -19,7 +19,6 @@ export default function CallPage() {
     <CallDrawer
       roomId={roomId}
       onClose={() => setOpen(false)}
-      title="Rozmowa"
     />
   );
 }

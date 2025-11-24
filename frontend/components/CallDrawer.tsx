@@ -5,6 +5,7 @@ import { canonicalizeRoomCode } from "@/lib/roomCode";
 import { useUploadRecording } from "@/entities/call/useUploadRecording";
 import { useCurrentUser } from "@/entities/user/useCurrentUser";
 import { useConsultantClients } from "@/entities/relation/useConsultantClients";
+import { useMyRelations } from "@/entities/relation/useMyRelations";
 
 type Props = {
   roomId: string;
@@ -17,19 +18,35 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
   const canonical = canonicalizeRoomCode(roomId);
   const me = useCurrentUser();
   const myClients = useConsultantClients();
+  const myRelations = useMyRelations();
   const decodedRelationId = useMemo(() => (Number.isFinite(canonical.relationId as any) ? Number(canonical.relationId) : null), [canonical.relationId]);
-  const clientDisplayName = useMemo(() => {
-    if (me?.role === "CLIENT") {
-      const display = [me.firstName, me.lastName].filter(Boolean).join(" ").trim();
-      return display || me.email;
+  const counterpartyDisplayName = useMemo(() => {
+    // Dla konsultanta pokazujemy nazwę klienta
+    if (me?.role === "CONSULTANT") {
+      if (decodedRelationId && (myClients.data ?? []).length > 0) {
+        const item = (myClients.data ?? []).find((c) => c.id === decodedRelationId);
+        const display = [item?.client.firstName, item?.client.lastName].filter(Boolean).join(" ").trim();
+        return display || item?.client.email || "";
+      }
+      return "";
     }
-    if (me?.role === "CONSULTANT" && decodedRelationId && (myClients.data ?? []).length > 0) {
-      const item = (myClients.data ?? []).find((c) => c.id === decodedRelationId);
-      const display = [item?.client.firstName, item?.client.lastName].filter(Boolean).join(" ").trim();
-      return display || item?.client.email || "";
+    // Dla klienta pokazujemy nazwę konsultanta (z relacji klienta)
+    if (me?.role === "CLIENT") {
+      const rels = myRelations.data ?? [];
+      if (decodedRelationId && rels.length > 0) {
+        const rel = rels.find((r) => r.id === decodedRelationId);
+        const display = [rel?.consultant.firstName, rel?.consultant.lastName].filter(Boolean).join(" ").trim();
+        return display || rel?.consultant.email || "";
+      }
+      return "";
     }
     return "";
-  }, [me?.role, me?.firstName, me?.lastName, me?.email, decodedRelationId, myClients.data]);
+  }, [
+    me?.role,
+    decodedRelationId,
+    myClients.data,
+    myRelations.data,
+  ]);
   const {
     localStreamRef,
     localStream,
@@ -73,7 +90,7 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
         const start = meetingStartRef.current!;
         const end = new Date(start.getTime() + 60 * 60 * 1000);
         const created = await createEvent.mutateAsync({
-          title: title || clientDisplayName || "Rozmowa",
+          title: title || counterpartyDisplayName || "Konsultacja",
           start: start.toISOString(),
           end: end.toISOString(),
           relationId: Number(relationIdDecoded),
@@ -96,12 +113,17 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ end: end.toISOString(), recordingId: recordingIdRef.current ?? null }),
+            body: JSON.stringify({
+              end: end.toISOString(),
+              recordingId: recordingIdRef.current ?? null,
+              // Jeżeli znamy lepszy tytuł, zaktualizuj go przy zamykaniu spotkania
+              ...(counterpartyDisplayName ? { title: counterpartyDisplayName } : {}),
+            }),
           }).catch(() => {});
         }
       } catch {}
     };
-  }, [canonical.relationId, me, myClients.isLoading, clientDisplayName, title, createEvent]);
+  }, [canonical.relationId, me, myClients.isLoading, counterpartyDisplayName, title, createEvent]);
   const uploader = useUploadRecording();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
