@@ -39,6 +39,9 @@ export default function StorePublicPage() {
   const primary = o.primaryColor || "#2563eb";
   const secondary = o.secondaryColor || "#0ea5e9";
 
+  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+  const normalizedHtml = (o.descriptionHtml || offer.descriptionHtml || "").replace(/https?:\/\/localhost:\d+/g, apiBase).replace(/https?:\/\/127\.0\.0\.1:\d+/g, apiBase);
+
   return (
     <div
       className="min-h-screen px-6 sm:px-10 md:px-14 lg:px-20 py-12"
@@ -102,7 +105,7 @@ export default function StorePublicPage() {
           </div>
         </div>
 
-        <div className="prose prose-slate mt-6" dangerouslySetInnerHTML={{ __html: offer.descriptionHtml }} />
+        <div className="prose prose-slate mt-6" dangerouslySetInnerHTML={{ __html: normalizedHtml }} />
 
         <div className="mt-8 flex justify-center">
           <a

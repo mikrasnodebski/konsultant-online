@@ -5,6 +5,13 @@ import "quill/dist/quill.snow.css";
 import { useMyOffer } from "@/entities/offer/useMyOffer";
 import { useSaveOffer } from "@/entities/offer/useSaveOffer";
 
+function normalizeAssetUrls(html: string): string {
+	const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+	return html
+		.replace(/https?:\/\/localhost:\d+/g, base)
+		.replace(/https?:\/\/127\.0\.0\.1:\d+/g, base);
+}
+
 type QuillInstance = {
 	root: HTMLDivElement;
 	getSelection: (focus?: boolean) => { index: number } | null;
@@ -84,7 +91,7 @@ export function OfferForm() {
 			});
 			quillInstanceRef.current = quill;
 			if (myOfferQuery.data?.descriptionHtml) {
-				quill.root.innerHTML = myOfferQuery.data.descriptionHtml;
+				quill.root.innerHTML = normalizeAssetUrls(myOfferQuery.data.descriptionHtml);
 			}
 		})();
 		return () => {
@@ -102,7 +109,7 @@ export function OfferForm() {
 		if (!quill) return;
 		if (seededRef.current) return;
 		if (html && html.length > 0) {
-			quill.root.innerHTML = html;
+			quill.root.innerHTML = normalizeAssetUrls(html);
 			seededRef.current = true;
 		}
 	}, [myOfferQuery.data?.descriptionHtml]);
@@ -130,7 +137,11 @@ export function OfferForm() {
 			const payload = {
 				storeSlug: storeSlugToSave,
 				title: title.trim(),
-				descriptionHtml: quillInstanceRef.current ? quillInstanceRef.current.root.innerHTML : myOfferQuery.data?.descriptionHtml ?? "",
+				descriptionHtml: normalizeAssetUrls(
+					quillInstanceRef.current
+						? quillInstanceRef.current.root.innerHTML
+						: myOfferQuery.data?.descriptionHtml ?? ""
+				),
 				pricePln: Number(pricePlnStr || 0),
 				primaryColor,
 				secondaryColor,
