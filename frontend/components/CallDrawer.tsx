@@ -1,8 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useWebRTC } from "@/entities/call/useWebRTC";
 import { useCreateEvent } from "@/entities/event/useCreateEvent";
 import { canonicalizeRoomCode } from "@/lib/roomCode";
 import { useUploadRecording } from "@/entities/call/useUploadRecording";
+import { useCurrentUser } from "@/entities/user/useCurrentUser";
+import { useConsultantClients } from "@/entities/relation/useConsultantClients";
 
 type Props = {
   roomId: string;
@@ -13,6 +15,21 @@ type Props = {
 export function CallDrawer({ roomId, onClose, title }: Props) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
   const canonical = canonicalizeRoomCode(roomId);
+  const me = useCurrentUser();
+  const myClients = useConsultantClients();
+  const decodedRelationId = useMemo(() => (Number.isFinite(canonical.relationId as any) ? Number(canonical.relationId) : null), [canonical.relationId]);
+  const clientDisplayName = useMemo(() => {
+    if (me?.role === "CLIENT") {
+      const display = [me.firstName, me.lastName].filter(Boolean).join(" ").trim();
+      return display || me.email;
+    }
+    if (me?.role === "CONSULTANT" && decodedRelationId && (myClients.data ?? []).length > 0) {
+      const item = (myClients.data ?? []).find((c) => c.id === decodedRelationId);
+      const display = [item?.client.firstName, item?.client.lastName].filter(Boolean).join(" ").trim();
+      return display || item?.client.email || "";
+    }
+    return "";
+  }, [me?.role, me?.firstName, me?.lastName, me?.email, decodedRelationId, myClients.data]);
   const {
     localStreamRef,
     localStream,
@@ -39,16 +56,24 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
   const meetingStartRef = useRef<Date | null>(null);
   const recordingIdRef = useRef<number | null>(null);
   const eventIdRef = useRef<number | null>(null);
+  const createdOnceRef = useRef(false);
   useEffect(() => {
+    // Czekaj aż znane będą: relationId, użytkownik oraz (dla konsultanta) lista klientów
+    const relationIdDecoded = canonical.relationId;
+    const userKnown = me !== null;
+    const clientsReady = me?.role !== "CONSULTANT" || myClients.isLoading === false;
+    if (createdOnceRef.current) return;
+    if (!Number.isFinite(relationIdDecoded as number)) return;
+    if (!userKnown || !clientsReady) return;
+
+    createdOnceRef.current = true;
     meetingStartRef.current = new Date();
     (async () => {
       try {
         const start = meetingStartRef.current!;
         const end = new Date(start.getTime() + 60 * 60 * 1000);
-        const relationIdDecoded = canonical.relationId;
-        if (!Number.isFinite(relationIdDecoded as number)) return;
         const created = await createEvent.mutateAsync({
-          title: title || "Rozmowa",
+          title: title || clientDisplayName || "Rozmowa",
           start: start.toISOString(),
           end: end.toISOString(),
           relationId: Number(relationIdDecoded),
@@ -57,6 +82,7 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
         if (created?.id) eventIdRef.current = Number(created.id);
       } catch {}
     })();
+
     return () => {
       try {
         const start = meetingStartRef.current;
@@ -73,10 +99,9 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
             body: JSON.stringify({ end: end.toISOString(), recordingId: recordingIdRef.current ?? null }),
           }).catch(() => {});
         }
-      } catch {
-      }
+      } catch {}
     };
-  }, []);
+  }, [canonical.relationId, me, myClients.isLoading, clientDisplayName, title, createEvent]);
   const uploader = useUploadRecording();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -188,7 +213,7 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
                       blob: result.blob,
                       durationMs: result.durationMs,
                       mimeType: result.blob.type,
-                      relationId: Number.isFinite(Number(roomId)) ? Number(roomId) : undefined,
+                      relationId: decodedRelationId ?? undefined,
                     });
                     if (typeof id === "number") recordingIdRef.current = id;
                   } catch {}
