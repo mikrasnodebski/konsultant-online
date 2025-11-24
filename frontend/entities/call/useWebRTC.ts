@@ -26,7 +26,7 @@ export function useWebRTC({ roomId, serverUrl }: UseWebRTCOptions) {
   const recordMsRef = useRef(0);
 
   useEffect(() => {
-    const socket = io(serverUrl, { withCredentials: true });
+    const socket = io(serverUrl, { withCredentials: true, transports: ["websocket"] });
     socketRef.current = socket;
 
     let initiator = false;
@@ -80,6 +80,22 @@ export function useWebRTC({ roomId, serverUrl }: UseWebRTCOptions) {
       setTimeout(() => {
         if (!initiator && !created) createPeer(false);
       }, 500);
+    });
+
+    socket.on("room:full", () => {
+      // Pokój pełny – zatrzymaj próbę tworzenia połączenia
+      created = true;
+      setConnected(false);
+      try {
+        socket.disconnect();
+      } catch {}
+      // Prosta komunikacja dla użytkownika
+      if (typeof window !== "undefined") {
+        try {
+          // nie blokujemy UX jeśli alert zablokowany
+          window.alert?.("Pokój jest pełny. Maksymalnie 2 uczestników.");
+        } catch {}
+      }
     });
 
     socket.on("peer:joined", () => {

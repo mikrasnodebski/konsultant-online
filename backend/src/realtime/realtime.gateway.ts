@@ -34,8 +34,33 @@ export class RealtimeGateway {
   @WebSocketServer()
   server!: Server;
 
+  async afterInit(server: Server) {
+    const url = process.env.REDIS_URL || process.env.REDIS_URI;
+    if (!url) return;
+    try {
+      // Lazy import to avoid type issues when package isn't installed locally
+      const { createAdapter } = await import('@socket.io/redis-adapter' as any);
+      const { createClient } = await import('redis' as any);
+      const pub = createClient({ url }) as any;
+      const sub = pub.duplicate();
+      await Promise.all([pub.connect(), sub.connect()]);
+      server.adapter(createAdapter(pub, sub));
+      // eslint-disable-next-line no-console
+      console.log('[Realtime] Redis adapter enabled');
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[Realtime] Redis adapter init failed', e);
+    }
+  }
+
   @SubscribeMessage('join')
   handleJoin(@ConnectedSocket() client: Socket, @MessageBody() data: { roomId: string }) {
+    const room = this.server.sockets.adapter.rooms.get(data.roomId);
+    const size = room ? room.size : 0;
+    if (size >= 2) {
+      client.emit('room:full');
+      return;
+    }
     client.join(data.roomId);
     client.to(data.roomId).emit('peer:joined');
   }

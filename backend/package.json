@@ -28,6 +28,8 @@
     "@nestjs/websockets": "^11.1.9",
     "@prisma/client": "^6.5.0",
     "cookie-parser": "^1.4.6",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "redis": "^4.6.13",
     "prisma": "^6.5.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

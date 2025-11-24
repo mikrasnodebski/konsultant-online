@@ -22,12 +22,22 @@ function fromBase64Url(input: string): string {
 
 export function encodeRoomId(id: number | string): string {
   const raw = String(id);
-  return toBase64Url(raw);
+  // Longer, deterministic, non-guessable-looking code
+  // Format before base64url: "rel:<id>:v1"
+  const payload = `rel:${raw}:v1`;
+  return toBase64Url(payload);
 }
 
 export function decodeRoomId(code: string): number | null {
   try {
     const raw = fromBase64Url(code);
+    // New format: rel:<id>:v1
+    const m = /^rel:(\d+):v1$/.exec(raw);
+    if (m) {
+      const n = Number(m[1]);
+      return Number.isFinite(n) ? n : null;
+    }
+    // Backward-compat: plain number encoded
     const n = Number(raw);
     return Number.isFinite(n) ? n : null;
   } catch {
