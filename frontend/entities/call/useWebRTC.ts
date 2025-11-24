@@ -24,6 +24,10 @@ export function useWebRTC({ roomId, serverUrl }: UseWebRTCOptions) {
   const [recordMs, setRecordMs] = useState(0);
   const recordTimerRef = useRef<any>(null);
   const recordMsRef = useRef(0);
+  const [requestingMedia, setRequestingMedia] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [insecureContext, setInsecureContext] = useState(false);
 
   useEffect(() => {
     const socket = io(serverUrl, { withCredentials: true, transports: ["websocket"] });
@@ -33,21 +37,64 @@ export function useWebRTC({ roomId, serverUrl }: UseWebRTCOptions) {
     let created = false;
 
     async function getLocalMedia() {
+      if (typeof window !== "undefined") {
+        setInsecureContext(!(window.isSecureContext || window.location.hostname === "localhost"));
+      }
+      if (requestingMedia) return localStreamRef.current;
+      setRequestingMedia(true);
+      setMediaError(null);
+      setPermissionDenied(false);
       if (!localStreamRef.current) {
-        localStreamRef.current = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: selectedCameraId ? { deviceId: { exact: selectedCameraId } } : true,
-        });
-        setLocalStream(localStreamRef.current);
         try {
-          const list = await navigator.mediaDevices.enumerateDevices();
-          const cams = list.filter((d) => d.kind === "videoinput");
-          setCameras(cams);
-          const currentTrack = localStreamRef.current.getVideoTracks()[0];
-          const deviceId = (currentTrack?.getSettings?.().deviceId || cams[0]?.deviceId) as string | undefined;
-          if (deviceId && !selectedCameraId) setSelectedCameraId(deviceId);
-        } catch {
+          const preferred: MediaStreamConstraints = {
+            audio: true,
+            video: selectedCameraId ? { deviceId: { exact: selectedCameraId } } : true,
+          };
+          let stream: MediaStream | null = null;
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(preferred);
+          } catch (err: any) {
+            if (err?.name === "OverconstrainedError" || err?.name === "NotFoundError" || err?.name === "NotReadableError") {
+              try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+              } catch {}
+            }
+            if (!stream) {
+              try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                  audio: true,
+                  video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+                });
+              } catch {}
+            }
+            if (!stream) {
+              try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                setVideoEnabled(false);
+              } catch (finalErr: any) {
+                if (finalErr?.name === "NotAllowedError") setPermissionDenied(true);
+                const msg = finalErr?.name || finalErr?.message || "Nie można uzyskać dostępu do mikrofonu/kamery.";
+                setMediaError(msg);
+              }
+            }
+          }
+          if (stream) {
+            localStreamRef.current = stream;
+            setLocalStream(stream);
+            try {
+              const list = await navigator.mediaDevices.enumerateDevices();
+              const cams = list.filter((d) => d.kind === "videoinput");
+              setCameras(cams);
+              const currentTrack = stream.getVideoTracks()[0];
+              const deviceId = (currentTrack?.getSettings?.().deviceId || cams[0]?.deviceId) as string | undefined;
+              if (deviceId && !selectedCameraId) setSelectedCameraId(deviceId);
+            } catch {}
+          }
+        } finally {
+          setRequestingMedia(false);
         }
+      } else {
+        setRequestingMedia(false);
       }
       return localStreamRef.current;
     }
@@ -89,7 +136,9 @@ export function useWebRTC({ roomId, serverUrl }: UseWebRTCOptions) {
     }
 
     socket.on("connect", async () => {
-      await getLocalMedia();
+      try {
+        await getLocalMedia();
+      } catch {}
       socket.emit("join", { roomId });
     });
 
