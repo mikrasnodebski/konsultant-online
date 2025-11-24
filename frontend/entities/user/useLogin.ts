@@ -13,7 +13,10 @@ export function useLogin(
 			return res.data;
 		},
 		onSuccess: (data, variables, ctx, mutation) => {
+			// Zapisz token w ciasteczku (frontend użyje go do dodawania Authorization)
 			document.cookie = `auth_token=${data.token}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			// Ustaw od razu nagłówek Authorization dla bieżącej sesji
+			api.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
 			options?.onSuccess?.(data, variables, ctx, mutation);
 		},
 		...options,

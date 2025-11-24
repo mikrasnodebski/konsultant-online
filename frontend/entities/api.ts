@@ -7,6 +7,26 @@ export const api = axios.create({
 	withCredentials: true,
 });
 
+function getCookie(name: string): string | null {
+	if (typeof document === "undefined") return null;
+	const match = document.cookie.match(new RegExp("(^|; )" + name.replace(/([.$?*|{}()\\[\\]\\\\/+^])/g, "\\$1") + "=([^;]*)"));
+	return match ? decodeURIComponent(match[2]) : null;
+}
+
+// Dołącz token z ciasteczka do nagłówka Authorization
+api.interceptors.request.use((config) => {
+	try {
+		const token = getCookie("auth_token");
+		if (token) {
+			config.headers = config.headers ?? {};
+			config.headers["Authorization"] = `Bearer ${token}`;
+		} else if (config?.headers && "Authorization" in config.headers) {
+			delete (config.headers as any)["Authorization"];
+		}
+	} catch {}
+	return config;
+});
+
 api.interceptors.response.use(
 	(response: any) => response,
 	(error: any) => {

@@ -22,6 +22,10 @@ export function ConsultantSidebar() {
 	function logout() {
 		try {
 			document.cookie = "auth_token=; Max-Age=0; path=/";
+			// Usuń nagłówek Authorization dla przyszłych żądań
+			try {
+				delete (api.defaults.headers.common as any)["Authorization"];
+			} catch {}
 		} catch {}
 		window.location.href = "/login";
 	}
