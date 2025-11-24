@@ -7,14 +7,26 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
+const allowedOrigins: (RegExp | string)[] = [
+  /http:\/\/localhost:\d+/,
+  /http:\/\/127\.0\.0\.1:\d+/,
+];
+if (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim().length > 0) {
+  allowedOrigins.push(process.env.FRONTEND_URL.trim());
+} else {
+  allowedOrigins.push('https://konsultant-online.vercel.app');
+}
+
 @WebSocketGateway({
   cors: {
-    origin: [
-      /http:\/\/localhost:\d+/,
-      /http:\/\/127\.0\.0\.1:\d+/,
-      // Production frontend (fallback to specific domain if env not provided)
-      (process.env.FRONTEND_URL || 'https://konsultant-online.vercel.app'),
-    ],
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin) return callback(null, true);
+      for (const rule of allowedOrigins) {
+        if (typeof rule === 'string' && origin === rule) return callback(null, true);
+        if (rule instanceof RegExp && rule.test(origin)) return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'), false);
+    },
     credentials: true,
   },
 })
