@@ -7,6 +7,7 @@ import { useUpcomingClientEvents } from "@/entities/event/useUpcomingClientEvent
 import { useMyRecordings } from "@/entities/call/useMyRecordings";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { encodeRoomId } from "@/lib/roomCode";
 
 export function ClientPanel() {
 	const user = useCurrentUser();
@@ -76,7 +77,7 @@ export function ClientPanel() {
 												</div>
 												{inProgress ? (
 													<button
-														onClick={() => router.push(`/panel/call/${e.relationId}`)}
+														onClick={() => router.push(`/call/${encodeRoomId(e.relationId)}`)}
 														className="rounded-md bg-blue-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700"
 													>
 														Dołącz do rozmowy
@@ -118,7 +119,7 @@ export function ClientPanel() {
 													Napisz
 												</a>
 												<button
-													onClick={() => router.push(`/panel/call/${r.relationId}`)}
+													onClick={() => router.push(`/call/${encodeRoomId(r.relationId)}`)}
 													className="ml-3 rounded-md bg-blue-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700"
 												>
 													Dołącz

@@ -7,6 +7,7 @@ import { useConsultantClients, type ConsultantClient } from "@/entities/relation
 import { useUpdateRelationNotes } from "@/entities/relation/useUpdateRelationNotes";
 import { useDeleteClientRelation } from "@/entities/relation/useDeleteClientRelation";
 import { RecordingsModal } from "./RecordingsModal";
+import { encodeRoomId } from "@/lib/roomCode";
 
 export function ClientsTable() {
   const { data: clients, isLoading } = useConsultantClients();
@@ -77,7 +78,7 @@ export function ClientsTable() {
                 </div>
                 <div className="flex items-center justify-end gap-2">
                   <button
-                    onClick={() => router.push(`/panel/call/${r.id}`)}
+                    onClick={() => router.push(`/call/${encodeRoomId(r.id)}`)}
                     aria-label="Połączenie telefoniczne"
                     title="Połączenie telefoniczne"
                     className="rounded-md border border-slate-300 bg-white w-8 h-8 grid place-items-center hover:bg-slate-50"

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useWebRTC } from "@/entities/call/useWebRTC";
 import { useCreateEvent } from "@/entities/event/useCreateEvent";
+import { decodeRoomId } from "@/lib/roomCode";
 import { useUploadRecording } from "@/entities/call/useUploadRecording";
 
 type Props = {
@@ -43,13 +44,13 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
       try {
         const start = meetingStartRef.current!;
         const end = new Date(start.getTime() + 60 * 60 * 1000);
-        const relationId = Number(roomId);
-        if (!Number.isFinite(relationId)) return;
+        const relationIdDecoded = decodeRoomId(roomId);
+        if (!Number.isFinite(relationIdDecoded as number)) return;
         const created = await createEvent.mutateAsync({
           title: title || "Rozmowa",
           start: start.toISOString(),
           end: end.toISOString(),
-          relationId,
+          relationId: Number(relationIdDecoded),
           source: "AUTO",
         });
         if (created?.id) eventIdRef.current = Number(created.id);
