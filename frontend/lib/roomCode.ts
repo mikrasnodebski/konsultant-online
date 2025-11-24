@@ -35,4 +35,19 @@ export function decodeRoomId(code: string): number | null {
   }
 }
 
+export function canonicalizeRoomCode(input: string): { roomCode: string; relationId: number | null } {
+  // If it's already base64url and decodes to a number, keep encoded canonical
+  const decoded = decodeRoomId(input);
+  if (decoded !== null) {
+    return { roomCode: encodeRoomId(decoded), relationId: decoded };
+  }
+  // If it's a plain numeric string, encode it
+  if (/^\d+$/.test(input)) {
+    const n = Number(input);
+    return { roomCode: encodeRoomId(n), relationId: n };
+  }
+  // Unknown format – return as-is without numeric relationId
+  return { roomCode: input, relationId: null };
+}
+
 

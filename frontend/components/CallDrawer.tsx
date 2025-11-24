@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useWebRTC } from "@/entities/call/useWebRTC";
 import { useCreateEvent } from "@/entities/event/useCreateEvent";
-import { decodeRoomId } from "@/lib/roomCode";
+import { canonicalizeRoomCode } from "@/lib/roomCode";
 import { useUploadRecording } from "@/entities/call/useUploadRecording";
 
 type Props = {
@@ -12,6 +12,7 @@ type Props = {
 
 export function CallDrawer({ roomId, onClose, title }: Props) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+  const canonical = canonicalizeRoomCode(roomId);
   const {
     localStreamRef,
     localStream,
@@ -31,7 +32,7 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
     startRecording,
     stopRecording,
   } = useWebRTC({
-    roomId,
+    roomId: canonical.roomCode,
     serverUrl: apiUrl,
   });
   const createEvent = useCreateEvent();
@@ -44,7 +45,7 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
       try {
         const start = meetingStartRef.current!;
         const end = new Date(start.getTime() + 60 * 60 * 1000);
-        const relationIdDecoded = decodeRoomId(roomId);
+        const relationIdDecoded = canonical.relationId;
         if (!Number.isFinite(relationIdDecoded as number)) return;
         const created = await createEvent.mutateAsync({
           title: title || "Rozmowa",
