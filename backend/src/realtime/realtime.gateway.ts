@@ -9,7 +9,12 @@ import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
   cors: {
-    origin: [/http:\/\/localhost:\d+/, /http:\/\/127\.0\.0\.1:\d+/],
+    origin: [
+      /http:\/\/localhost:\d+/,
+      /http:\/\/127\.0\.0\.1:\d+/,
+      // Production frontend (fallback to specific domain if env not provided)
+      (process.env.FRONTEND_URL || 'https://konsultant-online.vercel.app'),
+    ],
     credentials: true,
   },
 })
