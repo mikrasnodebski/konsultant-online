@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, Res, UploadedFile, UseGuards, UseInterceptors, ParseIntPipe } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { RecordingsService } from './recordings.service';
@@ -40,8 +40,8 @@ export class RecordingsController {
   }
 
   @Get(':id')
-  async get(@Param('id') id: string, @Res() res: Response) {
-    const rec = await this.svc.getBinary(Number(id));
+  async get(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    const rec = await this.svc.getBinary(id);
     if (!rec) {
       return res.status(404).send('Not found');
     }
@@ -70,9 +70,9 @@ export class RecordingsController {
 
   @Delete(':id')
   @UseGuards(JwtGuard)
-  async remove(@Param('id') id: string, @Req() req: any) {
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     const userId = req.user?.userId as number;
-    return this.svc.delete(Number(id), userId);
+    return this.svc.delete(id, userId);
   }
 }
 
