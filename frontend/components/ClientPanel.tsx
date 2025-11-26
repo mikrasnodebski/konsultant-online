@@ -202,15 +202,6 @@ export function ClientPanel() {
 													<div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity grid place-items-center">
 														<span className="text-white text-2xl">▶</span>
 													</div>
-													<a
-														href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/recordings/${r.id}`}
-														target="_blank"
-														rel="noreferrer"
-														onClick={(e) => e.stopPropagation()}
-														className="absolute top-2 right-2 rounded-md bg-white/90 hover:bg-white text-xs px-2 py-1 shadow border border-slate-200"
-													>
-														Pobierz
-													</a>
 													<div className="absolute left-0 right-0 bottom-0 p-2 text-[11px] bg-linear-to-t from-black/70 to-transparent text-white">
 														<div className="font-medium truncate">{name}</div>
 														<div className="opacity-80 truncate">{when} • ok. {mins} min</div>
@@ -265,7 +256,33 @@ export function ClientPanel() {
 							<div className="w-full max-w-3xl bg-black rounded-xl overflow-hidden shadow-2xl">
 								<div className="flex items-center justify-between px-4 py-3 bg-slate-900">
 									<h3 className="text-white text-sm">Podgląd nagrania</h3>
-									<button onClick={() => setPreviewId(null)} className="text-slate-300 hover:text-white">✕</button>
+									<div className="flex items-center gap-2">
+										<button
+											onClick={async () => {
+												try {
+													const url = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/recordings/${previewId}`;
+													const res = await fetch(url, { credentials: "include" });
+													if (!res.ok) throw new Error(`HTTP ${res.status}`);
+													const blob = await res.blob();
+													const type = (blob.type || "video/webm").toLowerCase();
+													const ext = type.includes("mp4") ? "mp4" : type.includes("webm") ? "webm" : "bin";
+													const a = document.createElement("a");
+													a.href = URL.createObjectURL(blob);
+													a.download = `nagranie-${previewId}.${ext}`;
+													document.body.appendChild(a);
+													a.click();
+													setTimeout(() => {
+														URL.revokeObjectURL(a.href);
+														a.remove();
+													}, 0);
+												} catch {}
+											}}
+											className="rounded-md bg-white/10 hover:bg-white/20 text-white text-xs px-2 py-1"
+										>
+											Pobierz
+										</button>
+										<button onClick={() => setPreviewId(null)} className="text-slate-300 hover:text-white">✕</button>
+									</div>
 								</div>
 								<div className="bg-black">
 									<video
