@@ -5,7 +5,7 @@ import { useCreateLead } from "@/entities/relation/useCreateLead";
 import { useConsultants } from "@/entities/relation/useConsultants";
 import { useUpcomingClientEvents } from "@/entities/event/useUpcomingClientEvents";
 import { useMyRecordings } from "@/entities/call/useMyRecordings";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { encodeRoomId } from "@/lib/roomCode";
 
@@ -19,6 +19,29 @@ export function ClientPanel() {
 	const upcoming = useUpcomingClientEvents(1);
 	const myRecordings = useMyRecordings();
 	const [previewId, setPreviewId] = useState<number | null>(null);
+
+	// Debug: loguj stan nagrań i ewentualne błędy
+	useEffect(() => {
+		console.log("[ClientPanel] recordings loading:", myRecordings.isLoading);
+		console.log("[ClientPanel] recordings count:", (myRecordings.data ?? []).length);
+		if (myRecordings.data) {
+			console.log("[ClientPanel] recordings sample:", myRecordings.data.slice(0, 3));
+		}
+	}, [myRecordings.isLoading, myRecordings.data]);
+
+	useEffect(() => {
+		if ((myRecordings as any).isError) {
+			console.error("[ClientPanel] recordings error:", (myRecordings as any).error);
+		}
+	}, [(myRecordings as any).isError, (myRecordings as any).error]);
+
+	// Debug: loguj URL podglądu, kiedy użytkownik wybierze nagranie
+	useEffect(() => {
+		if (previewId) {
+			const url = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/recordings/${previewId}`;
+			console.log("[ClientPanel] preview url:", url);
+		}
+	}, [previewId]);
 
 	const userEmail = useMemo(() => user?.email ?? "...", [user?.email]);
 

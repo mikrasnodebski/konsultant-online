@@ -11,10 +11,19 @@ async function bootstrap() {
   app.use(json({ limit: '100mb' }));
   app.use(urlencoded({ limit: '100mb', extended: true }));
   app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
-  const allowedOrigins: (RegExp | string)[] = [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/];
-  const frontendUrl = (process.env.FRONTEND_URL || '').trim();
-  if (frontendUrl) {
-    allowedOrigins.push(frontendUrl);
+  const allowedOrigins: (RegExp | string)[] = [
+    /^http:\/\/localhost:\d+$/,
+    /^http:\/\/127\.0\.0\.1:\d+$/,
+    /^https:\/\/localhost:\d+$/,
+    /^https:\/\/127\.0\.0\.1:\d+$/,
+  ];
+  const envOriginsRaw = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '').trim();
+  if (envOriginsRaw) {
+    envOriginsRaw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .forEach((origin) => allowedOrigins.push(origin));
   }
   app.enableCors({
     origin: allowedOrigins,
