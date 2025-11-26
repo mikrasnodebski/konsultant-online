@@ -39,17 +39,12 @@ export class RecordingsController {
     return saved;
   }
 
-  @Get(':id')
-  async get(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
-    const rec = await this.svc.getBinary(id);
-    if (!rec) {
-      return res.status(404).send('Not found');
-    }
-    res.setHeader('Content-Type', rec.mimeType || 'video/webm');
-    res.setHeader('Cache-Control', 'private, max-age=31536000');
-    const bin = (rec.data as unknown) as Buffer | Uint8Array;
-    const buf = Buffer.isBuffer(bin) ? bin : Buffer.from(bin);
-    return res.end(buf);
+  // Ważne: statyczna ścieżka przed dynamiczną ':id'
+  @Get('my-client')
+  @UseGuards(JwtGuard)
+  async listMineAsClient(@Req() req: any) {
+    const userId = req.user?.userId as number;
+    return this.svc.listForClient(userId);
   }
 
   @Get()
@@ -61,11 +56,17 @@ export class RecordingsController {
     return this.svc.listByRelation(rid);
   }
 
-  @Get('my-client')
-  @UseGuards(JwtGuard)
-  async listMineAsClient(@Req() req: any) {
-    const userId = req.user?.userId as number;
-    return this.svc.listForClient(userId);
+  @Get(':id')
+  async get(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    const rec = await this.svc.getBinary(id);
+    if (!rec) {
+      return res.status(404).send('Not found');
+    }
+    res.setHeader('Content-Type', rec.mimeType || 'video/webm');
+    res.setHeader('Cache-Control', 'private, max-age=31536000');
+    const bin = (rec.data as unknown) as Buffer | Uint8Array;
+    const buf = Buffer.isBuffer(bin) ? bin : Buffer.from(bin);
+    return res.end(buf);
   }
 
   @Delete(':id')

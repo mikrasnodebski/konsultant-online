@@ -39,6 +39,17 @@ export class RecordingsService {
       },
       select: { id: true },
     });
+    try {
+      // Prosty log diagnostyczny: potwierdzenie zapisu nagrania
+      console.log('[RecordingsService] created recording', {
+        id: rec.id,
+        relationId: params.relationId ?? null,
+        consultantId: consultantId ?? null,
+        clientId: clientId ?? null,
+        durationMs: params.durationMs,
+        mimeType: params.mimeType,
+      });
+    } catch {}
     return { id: rec.id };
   }
 
