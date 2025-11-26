@@ -81,16 +81,18 @@ export function ClientPanel() {
 								<div className="p-5 text-sm">
 									{upcoming.isLoading && <p className="text-slate-600">Ładowanie…</p>}
 									{!upcoming.isLoading && (upcoming.data ?? []).length === 0 && <p className="text-slate-600">Brak zaplanowanych konsultacji.</p>}
-									{!upcoming.isLoading && (upcoming.data ?? []).length === 1 && (() => {
-										const e = upcoming.data![0];
+									{!upcoming.isLoading && (upcoming.data ?? []).length > 0 && (() => {
+										const e = (upcoming.data ?? [])[0]!;
 										const s = new Date(e.start);
 										const eEnd = new Date(e.end);
 										const now = new Date();
+										const fifteenMinMs = 15 * 60 * 1000;
 										const date = s.toLocaleDateString("pl-PL", { weekday: "long", day: "2-digit", month: "long" });
 										const time = s.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
 										const timeEnd = eEnd.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
 										const name = [e.consultant.firstName, e.consultant.lastName].filter(Boolean).join(" ").trim() || e.consultant.email;
 										const inProgress = now >= s && now < eEnd;
+										const canJoin = now.getTime() >= s.getTime() - fifteenMinMs && now.getTime() <= eEnd.getTime();
 										return (
 											<div className="flex items-center justify-between">
 												<div>
@@ -98,7 +100,7 @@ export function ClientPanel() {
 													<p className="text-slate-600">{name}</p>
 													{inProgress && <p className="text-xs text-emerald-700 mt-1">Trwa teraz</p>}
 												</div>
-												{inProgress ? (
+												{canJoin ? (
 													<button
 														onClick={() => router.push(`/call/${encodeRoomId(e.relationId)}`)}
 														className="rounded-md bg-blue-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700"
