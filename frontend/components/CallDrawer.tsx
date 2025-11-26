@@ -52,32 +52,27 @@ export function CallDrawer({ roomId, onClose, title }: Props) {
     myRelations.data,
   ]);
 
-  // Ustal, czy należy pominąć automatyczne tworzenie eventu,
-  // gdy istnieje już zaplanowany event dla tej relacji, który trwa
-  // lub zaczyna się w ciągu 15 minut.
   const skipAutoCreate = useMemo(() => {
-    if (!decodedRelationId) return false;
     const now = new Date();
-    const fifteenMinMs = 15 * 60 * 1000;
 
     if (me?.role === "CONSULTANT") {
-      const list = (myCalendar.data ?? []).filter((e) => (e.relationId ?? null) === decodedRelationId);
+      const list = (myCalendar.data ?? []);
       return list.some((e) => {
         const s = new Date(e.start);
         const eend = new Date(e.end ?? e.start);
-        return now.getTime() >= s.getTime() - fifteenMinMs && now.getTime() <= eend.getTime();
+        return now.getTime() >= s.getTime() && now.getTime() <= eend.getTime();
       });
     }
     if (me?.role === "CLIENT") {
-      const list = (clientUpcoming.data ?? []).filter((e) => (e.relationId ?? null) === decodedRelationId);
+      const list = (clientUpcoming.data ?? []);
       return list.some((e) => {
         const s = new Date(e.start);
         const eend = new Date(e.end ?? e.start);
-        return now.getTime() >= s.getTime() - fifteenMinMs && now.getTime() <= eend.getTime();
+        return now.getTime() >= s.getTime() && now.getTime() <= eend.getTime();
       });
     }
     return false;
-  }, [decodedRelationId, me?.role, myCalendar.data, clientUpcoming.data]);
+  }, [me?.role, myCalendar.data, clientUpcoming.data]);
   const {
     localStreamRef,
     localStream,
