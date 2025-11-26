@@ -65,7 +65,7 @@ export class RecordingsService {
 
   async listForClient(clientId: number) {
     const relations = await this.prisma.relation.findMany({
-      where: { clientId, isDeleted: false },
+      where: { clientId },
       select: {
         id: true,
         consultant: { select: { id: true, email: true, phone: true, firstName: true, lastName: true } },
